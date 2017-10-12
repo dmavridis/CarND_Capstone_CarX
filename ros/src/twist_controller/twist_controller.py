@@ -6,16 +6,18 @@ from lowpass import LowPassFilter
 
 GAS_DENSITY = 2.858
 ONE_MPH     = 0.44704
-MAX_SPEED   = 10.0
+MAX_SPEED   = 18.2 # kph set in waypoint loader
 
 
 class Controller(object):
-    def __init__(self, vehicle_mass, wheel_radius, decel_limit, wheel_base, steer_ratio, max_lat_accel, max_steer_angle, Kp, Ki, Kd):
+    def __init__(self, vehicle_mass, brake_deadband, wheel_radius, decel_limit, wheel_base, 
+        steer_ratio, max_lat_accel, max_steer_angle, Kp, Ki, Kd):
 
         min_speed           = 1.0 * ONE_MPH
         self.throttle_pid   = PID(Kp, Ki, Kd)
         self.yaw_control    = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle)
 
+        self.brake_deadband = brake_deadband
         self.v_mass         = vehicle_mass
         self.w_radius       = wheel_radius
         self.d_limit        = decel_limit
@@ -36,7 +38,7 @@ class Controller(object):
 
         # Assumed maximum speed is in mph
 
-        error = min(target_v.x, MAX_SPEED * ONE_MPH) - current_v.x
+        error = min(target_v.x, MAX_SPEED * 0.277778) - current_v.x
 
         throttle = self.throttle_pid.step(error, dt)
 
@@ -58,10 +60,12 @@ class Controller(object):
             if abs(deceleration) > abs(self.d_limit)*500:
                 deceleration = self.d_limit*500  # Limited to decelartion limits
             longitudinal_force  = self.v_mass * deceleration
-            brake               = longitudinal_force * self.w_radius
-            throttle        = 0.0
+            brake = longitudinal_force * self.w_radius
+            if brake < self.brake_deadband:
+                brake = 0.0
+            throttle = 0.0
         else:
-            brake       = 0.0
+            brake = 0.0
 
         # Steering control is using Yaw Control..
         steer = self.yaw_control.get_steering(target_v.x, target_omega.z, current_v.x)

@@ -37,6 +37,7 @@ class WaypointUpdater(object):
         self.pos_point = None # Stores the waypoint index the car is closest to
         self.traffic_point = -1 # Stores the waypoint index of the closest traffic light
         self.red_light_ahead = False
+#        self.yellow_light_ahead = False
         self.lookahead_wps = 0
         self.max_velocity = 1 # m/s
         self.limit_traffic_ahead = 1 # [in m ] when red traffic light ahead, act when closer than this distance
@@ -95,7 +96,7 @@ class WaypointUpdater(object):
         # rospy.logwarn("Total waypoints {}".format(self.waypoints_size))
         self.max_velocity = self.get_waypoint_velocity(waypoints.waypoints[0]) # m/s
         # rospy.logwarn("Max Velocity {}".format(self.max_velocity))
-        self.limit_traffic_ahead = 2*self.max_velocity # empirical expression, for larger speed start deceleration earlier
+        self.limit_traffic_ahead = 1.8*self.max_velocity # empirical expression, for larger speed start deceleration earlier
 
     def pose_cb(self, msg):
         '''
@@ -122,11 +123,9 @@ class WaypointUpdater(object):
         Reads amd processes a traffic light signal
         '''
         if (msg.data >= 0):
+#            rospy.logwarn(msg)
             self.traffic_point = msg.data
-            if self.traffic_point > self.pos_point:
-                self.red_light_ahead = True
-            else:
-                self.red_light_ahead = False
+            self.red_light_ahead = True
         else:
             self.traffic_point = None
             self.red_light_ahead = False
